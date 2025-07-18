@@ -1,0 +1,163 @@
+@use "sass:map";
+
+$stroke-default: 628.32;
+$stroke-width-default: 65;
+$stroke-width-hover: 70;
+$outline-width: 68;
+$outline-color: #fff;
+$primary-gold: #cc9c50;
+$option-area-bg: #f2eada;
+
+$pie-colors: (
+  1: #8e714f,
+  2: #cc9c50,
+  3: #e8b462,
+  4: #f5d39c,
+  5: #a6c7a5,
+  6: #6bb169,
+);
+
+$pie-offsets: (
+  1: 328,
+  2: 412,
+  3: 507,
+  4: -103,
+  5: 0,
+  6: 329,
+);
+
+$pie-dash-arrays: (
+  1: 85,
+  2: 85,
+  3: 90,
+  4: 110,
+  5: 105,
+  6: 170,
+);
+
+@mixin transition($property: all, $duration: 0.3s, $timing: ease) {
+  transition: $property $duration $timing;
+}
+
+@mixin underline-effect($color: $primary-gold) {
+  position: relative;
+
+  &::after {
+    content: "";
+    position: absolute;
+    bottom: 0px;
+    height: 3px;
+    background: $color;
+    transform: scaleX(0);
+    transform-origin: center;
+    transition: transform 0.3s ease;
+  }
+}
+
+// Main KV Section
+.main-kv {
+  position: relative;
+  width: 100%;
+  min-height: 100vh;
+  background-color: $option-area-bg;
+}
+
+.pieChart {
+  width: 100%;
+  height: 100%;
+  transform: scale(1.1);
+}
+
+.outlines {
+  stroke-width: $outline-width;
+  stroke: $outline-color;
+  fill: none;
+  opacity: 0;
+  transition: all ease 900ms;
+  stroke-dasharray: $stroke-default;
+  stroke-dashoffset: 0;
+}
+
+[class^="pie"] {
+  stroke-width: $stroke-width-default;
+  fill: none;
+  transition: all ease 450ms;
+  stroke-dasharray: 0 $stroke-default;
+
+  &:hover {
+    stroke-width: $stroke-width-hover;
+  }
+}
+
+@each $num, $color in $pie-colors {
+  .pie-#{$num} {
+    stroke: $color;
+    stroke-dashoffset: map.get($pie-offsets, $num);
+    transition-delay: #{$num * 25}ms;
+  }
+}
+
+.animated {
+  .outlines {
+    opacity: 1;
+  }
+
+  @each $num, $dash-array in $pie-dash-arrays {
+    .pie-#{$num} {
+      stroke-dasharray: $dash-array $stroke-default;
+    }
+  }
+}
+
+@keyframes scroll {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(10px);
+  }
+}
+
+.scroll-arrow {
+  animation: scroll 0.35s ease-in alternate infinite;
+}
+
+.option-area {
+  background-color: $option-area-bg;
+}
+
+.header {
+  color: black;
+}
+
+.hover-underline {
+  @include underline-effect;
+
+  &::after {
+    left: 50%;
+    width: 0;
+  }
+
+  &:hover::after {
+    width: 100%;
+    left: 0;
+    transform: scaleX(1);
+  }
+}
+
+.active-underline {
+  @include underline-effect;
+  color: $primary-gold;
+
+  &::after {
+    left: 0;
+    width: 100%;
+    transform: scaleX(1);
+  }
+}
+
+.btnKYC:hover {
+  cursor: pointer;
+  background-color: $primary-gold;
+  color: #fff;
+}

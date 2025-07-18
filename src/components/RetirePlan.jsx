@@ -7,106 +7,50 @@ import {
   CartesianGrid,
   Tooltip,
   Legend,
+  ReferenceDot,
+  Scatter,
   ResponsiveContainer,
 } from "recharts";
 import { Edit, Check } from "lucide-react";
-import { useRiskNotes } from "../context/useRiskNotes";
+import {
+  riskText,
+  retireInput,
+  retireConstant,
+  situation,
+  chartDataCalculation,
+  optimalSolution,
+} from "../utilty/Formula";
+import RiskNoticeComponent from "./RiskNotice";
+import RiskForKYCComponent from "./RiskForKYC";
+import CustomSlider from "./CustomSlider";
+import CommonContext from "../context/CommonContext";
 
-const RetirementCalculator = ({ type = "Golden" }) => {
-  const [company] = useState(type);
+const RetirementCalculator = ({ utils }) => {
   const [switchNTD, setSwitchNTD] = useState(false);
   const [switchSet, setSwitchSet] = useState({ single: true, regular: true });
   const [edit, setEdit] = useState({ single: false, regular: false });
   const [warning, setWarning] = useState(false);
   const [suggest, setSuggest] = useState([0, 0]);
   const [chartData, setChartData] = useState([]);
+  const [withdrawData, setWithdrawData] = useState([]);
+  const [assetData, setAssetData] = useState([0, 0, 0]);
   const [text, setText] = useState([]);
+  const [errors, setErrors] = useState([]);
 
   // 輸入參數初始值
-  const [input, setInput] = useState({
-    kyc: 1, // 風險等級
-    nowAge: 30,
-    retireAge: 65,
-    lifeAge: 85,
-    withdraw: 5000,
-    invMoney: 100000, // 單筆投入
-    regMoney: 10000, // 定期定額
-    deposit: 50000, // 其他現金準備
-  });
+  const [input, setInput] = useState(retireInput);
 
   const [textSingle, setTextSingle] = useState("100,000");
   const [textRegular, setTextRegular] = useState("10,000");
 
-  // 風險告知
-  const { riskNotes } = useRiskNotes();
   // 工具函數
-  const toThousand = (num) => {
-    return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-  };
-
-  const commasToNumber = (str) => {
-    return parseInt(str.toString().replace(/,/g, "")) || 0;
-  };
-
-  const addCommas = (num) => {
-    return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-  };
+  const { toThousand, addCommas, commasToNumber } = utils;
 
   // 貨幣前綴
   const preffix = switchNTD ? "NT$ " : "US$ ";
 
-  // 風險屬性文字
-  const riskText = [
-    { value: 0, text: "保守型" },
-    { value: 1, text: "穩健型" },
-    { value: 2, text: "積極型" },
-    { value: 3, text: "高風險型" },
-  ];
-
   // 顏色配置
-  const getCompanyColors = (company) => {
-    const colors = {
-      Golden: {
-        background: "#f2eada",
-        text: "black",
-        thumb: "#cc9c50",
-        notice: "#837151",
-        riskBtn: "bg-yellow-600",
-        bar: "#cc9c50",
-      },
-      ENOCH: {
-        background: "#F7F8F7",
-        text: "#074163",
-        thumb: "#D35A23",
-        notice: "#074163",
-        riskBtn: "bg-blue-600",
-        bar: "#074163",
-      },
-      JyuMei: {
-        background: "#FFF7F7",
-        text: "#393939",
-        thumb: "#BE0000",
-        notice: "#BE0000",
-        riskBtn: "bg-red-600",
-        bar: "#BE0000",
-      },
-    };
-    return colors[company] || colors.Golden;
-  };
-
-  const colors = getCompanyColors(company);
-
-  // 固定參數
-  const constant = {
-    Rinvest: [
-      [0.08, 0.06, 0.04], // 保守型
-      [0.1, 0.08, 0.06], // 穩健型
-      [0.12, 0.1, 0.08], // 積極型
-      [0.15, 0.12, 0.09], // 高風險型
-    ],
-    inflation: 0.02,
-    depositRate: 0.015,
-  };
+  const { colors } = React.useContext(CommonContext);
 
   // 目標設定選項
   const goalOptions = [
@@ -130,7 +74,7 @@ const RetirementCalculator = ({ type = "Golden" }) => {
     {
       name: "退休後每月提領金額",
       prop: "withdraw",
-      max: 20000,
+      max: 10000,
       min: 0,
       unit: "元",
       step: 100,
@@ -142,18 +86,18 @@ const RetirementCalculator = ({ type = "Golden" }) => {
     {
       name: "單筆投入金額",
       prop: "invMoney",
-      max: 100000000,
-      min: 35000,
+      max: 1000000,
+      min: 1000,
       unit: "元",
       step: 1000,
     },
     {
       name: "定期定額投入金額",
       prop: "regMoney",
-      max: 35000,
-      min: 3500,
+      max: 10000,
+      min: 100,
       unit: "元",
-      step: 500,
+      step: 100,
     },
     {
       name: "其他現金準備",
@@ -165,56 +109,69 @@ const RetirementCalculator = ({ type = "Golden" }) => {
     },
   ];
 
-  // 資產計算函數
-  const calculateAsset = () => {
-    const yearsToRetire = input.retireAge - input.nowAge;
-    const yearsAfterRetire = input.lifeAge - input.retireAge;
-    const monthlyInvest = switchSet.regular ? input.regMoney : 0;
-    const lumpSum = switchSet.single ? input.invMoney : 0;
-
-    const scenarios = ["better", "normal", "poor"];
-    const results = {};
-
-    scenarios.forEach((scenario, index) => {
-      const rate = constant.Rinvest[input.kyc][index];
-      const monthlyRate = rate / 12;
-
-      // 計算退休前資產累積
-      let asset = lumpSum;
-      const yearlyData = [];
-
-      for (let year = 0; year <= yearsToRetire; year++) {
-        if (year > 0) {
-          asset = asset * (1 + rate) + monthlyInvest * 12 * (1 + rate);
-        }
-        yearlyData.push({
-          year: input.nowAge + year,
-          asset: asset + input.deposit,
-        });
-      }
-
-      results[scenario] = yearlyData;
-    });
-
-    return results;
-  };
-
   // 生成圖表數據
   const generateChartData = () => {
-    const assetData = calculateAsset();
-    const yearsToRetire = input.retireAge - input.nowAge;
-    const data = [];
+    // 退休年齡不可小於現在年齡 或 預期壽命不可小於退休年齡
+    if (input.retireAge <= input.nowAge || input.lifeAge <= input.retireAge)
+      return;
+    const [
+      XLineData,
+      YLineData,
+      beforeRetireAssetData,
+      afterRetireAssetData,
+      withdrawAll,
+      chartData,
+    ] = chartDataCalculation(input, situation("retire"), retireConstant);
 
-    for (let i = 0; i <= yearsToRetire; i++) {
-      data.push({
-        age: input.nowAge + i,
-        better: Math.round(assetData.better[i].asset / 10000),
-        normal: Math.round(assetData.normal[i].asset / 10000),
-        poor: Math.round(assetData.poor[i].asset / 10000),
-      });
-    }
+    const withdrawData = [input.retireAge, withdrawAll];
+    const assetData = ["better", "normal", "poor"].reduce((acc, situation) => {
+      acc.push([input.retireAge, beforeRetireAssetData[situation].at(-1)]);
+      return acc;
+    }, []);
 
-    return data;
+    const refineChartData = chartData.map((item) => {
+      const age = item.age;
+      if (age === withdrawData[0]) {
+        item.withdrawAll = withdrawData[1];
+      }
+      return item;
+    });
+
+    setChartData(refineChartData);
+    setWithdrawData(withdrawData);
+    setAssetData(assetData);
+
+    // 更新文字顯示
+    const { better, normal, poor } = afterRetireAssetData;
+    setText([
+      [
+        "#438B41",
+        `市場較好情況下，您可能累積到：${preffix} ${(better[0] / 10000).toFixed(
+          1
+        )}萬`,
+      ],
+      [
+        "#6BB169",
+        `市場一般情況下，您可能累積到：${preffix} ${(normal[0] / 10000).toFixed(
+          1
+        )}萬`,
+      ],
+      [
+        "#A6C7A5",
+        `市場較差情況下，您可能累積到：${preffix} ${(poor[0] / 10000).toFixed(
+          1
+        )}萬`,
+      ],
+    ]);
+
+    const [warning, suggest] = optimalSolution(
+      withdrawAll,
+      YLineData.normal[input.retireAge - input.nowAge],
+      input.retireAge - input.nowAge
+    )(retireConstant, input);
+    // 檢查是否需要警告
+    setWarning(warning);
+    setSuggest(suggest);
   };
 
   // 切換編輯狀態
@@ -252,101 +209,19 @@ const RetirementCalculator = ({ type = "Golden" }) => {
 
   // 驗證規則
   const validateInput = () => {
-    const errors = [];
-    if (input.nowAge >= input.retireAge)
-      errors.push("現在年齡不得大於退休年齡");
-    if (input.lifeAge <= input.retireAge)
-      errors.push("預期壽命不得小於退休年齡");
-    if (switchSet.regular && input.regMoney < 3500)
-      errors.push("定期定額不得小於3,500元");
-    if (switchSet.single && input.invMoney < 35000)
-      errors.push("單筆投入不得小於35,000元");
-    return errors;
-  };
-
-  // 更新計算
-  const updateCalculation = () => {
-    const data = generateChartData();
-    setChartData(data);
-
-    // 更新文字顯示
-    const retireData = data[data.length - 1];
-    setText([
-      [
-        "#438B41",
-        `市場較好情況下，您可能累積到：${preffix} ${toThousand(
-          retireData.better
-        )}萬`,
-      ],
-      [
-        "#6BB169",
-        `市場一般情況下，您可能累積到：${preffix} ${toThousand(
-          retireData.normal
-        )}萬`,
-      ],
-      [
-        "#A6C7A5",
-        `市場較差情況下，您可能累積到：${preffix} ${toThousand(
-          retireData.poor
-        )}萬`,
-      ],
-    ]);
-
-    // 檢查是否需要警告
-    const totalWithdraw =
-      input.withdraw * 12 * (input.lifeAge - input.retireAge);
-    const normalAsset = retireData.normal * 10000;
-    setWarning(normalAsset < totalWithdraw);
-
-    if (normalAsset < totalWithdraw) {
-      const deficit = totalWithdraw - normalAsset;
-      setSuggest([
-        toThousand(Math.round(deficit * 0.8)),
-        toThousand(Math.round((deficit * 0.2) / 12)),
-      ]);
+    let errors = [];
+    if (input.retireAge <= input.nowAge) {
+      errors.push("退休年齡必須大於現在年齡");
     }
-  };
-
-  // 自定義滑桿組件
-  const CustomSlider = ({ value, onChange, min, max, step, color }) => {
-    const percentage = ((value - min) / (max - min)) * 100;
-
-    return (
-      <div className="relative w-full h-3 bg-gray-200 rounded-full">
-        <div
-          className="absolute h-full rounded-full"
-          style={{
-            width: `${percentage}%`,
-            backgroundColor: color,
-          }}
-        />
-        <input
-          type="range"
-          min={min}
-          max={max}
-          step={step}
-          value={value}
-          onChange={(e) => onChange(parseInt(e.target.value))}
-          className="absolute w-full h-full opacity-0 cursor-pointer"
-        />
-        <div
-          className="absolute w-6 h-6 bg-white border-4 rounded-full transform -translate-y-1/2 -translate-x-1/2 cursor-pointer"
-          style={{
-            left: `${percentage}%`,
-            top: "50%",
-            borderColor: color,
-          }}
-        />
-      </div>
-    );
+    if (input.lifeAge <= input.retireAge) {
+      errors.push("預期壽命必須大於退休年齡");
+    }
+    setErrors(errors);
   };
 
   useEffect(() => {
-    console.log(riskNotes);
-  }, []);
-
-  useEffect(() => {
-    updateCalculation();
+    generateChartData();
+    validateInput();
   }, [input, switchSet, switchNTD]);
 
   useEffect(() => {
@@ -363,31 +238,25 @@ const RetirementCalculator = ({ type = "Golden" }) => {
         className="container mx-auto px-4 py-8"
         style={{ color: colors.text }}
       >
-        {/* 風險等級 */}
-        <section className="mb-8">
-          <h2 className="text-2xl font-bold mb-6">風險等級</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {riskText.map((item, index) => (
-              <button
-                key={index}
-                className={`p-4 rounded-lg text-lg font-medium transition-all ${
-                  input.kyc === item.value
-                    ? `${colors.riskBtn} text-white shadow-lg`
-                    : "bg-gray-100 opacity-60 hover:opacity-80"
-                }`}
-                onClick={() => handleSliderChange("kyc", item.value)}
-              >
-                {item.text}
-              </button>
-            ))}
-          </div>
-        </section>
+        <RiskForKYCComponent
+          input={input}
+          colors={colors}
+          riskText={riskText}
+          handleChange={handleSliderChange}
+        ></RiskForKYCComponent>
 
         {/* 目標設定 */}
         <section className="mb-8">
-          <h2 className="text-2xl font-bold mb-6">目標設定</h2>
+          <h2 className="text-2xl font-bold mb-4">目標設定</h2>
+          {errors.length > 0 && (
+            <ul className="text-red-600 font-bold text-sm space-y-1">
+              {errors.map((err, index) => (
+                <li key={index}>• {err}</li>
+              ))}
+            </ul>
+          )}
           {goalOptions.map((option, index) => (
-            <div key={index} className="mb-6">
+            <div key={index} className="mb-4">
               <div className="flex justify-between items-center mb-2">
                 <span className="font-medium">{option.name}</span>
                 <span className="font-bold">
@@ -396,11 +265,13 @@ const RetirementCalculator = ({ type = "Golden" }) => {
                 </span>
               </div>
               <CustomSlider
-                value={input[option.prop]}
-                onChange={(value) => handleSliderChange(option.prop, value)}
                 min={option.min}
                 max={option.max}
                 step={option.step}
+                value={input[option.prop]}
+                onChange={(value) => {
+                  handleSliderChange(option.prop, value);
+                }}
                 color={colors.bar}
               />
             </div>
@@ -409,7 +280,7 @@ const RetirementCalculator = ({ type = "Golden" }) => {
 
         {/* 投入金額 */}
         <section className="mb-8">
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center justify-between mb-4">
             <h2 className="text-2xl font-bold">投入金額</h2>
             <div className="flex gap-4">
               <label className="flex items-center">
@@ -440,17 +311,16 @@ const RetirementCalculator = ({ type = "Golden" }) => {
                 />
                 定期定額
               </label>
-              {company === "JyuMei" && (
-                <label className="flex items-center">
-                  <input
-                    type="checkbox"
-                    checked={switchNTD}
-                    onChange={(e) => setSwitchNTD(e.target.checked)}
-                    className="mr-2"
-                  />
-                  顯示台幣
-                </label>
-              )}
+
+              <label className="flex items-center">
+                <input
+                  type="checkbox"
+                  checked={switchNTD}
+                  onChange={(e) => setSwitchNTD(e.target.checked)}
+                  className="mr-2"
+                />
+                顯示台幣
+              </label>
             </div>
           </div>
 
@@ -462,7 +332,7 @@ const RetirementCalculator = ({ type = "Golden" }) => {
 
           {/* 單筆投入 */}
           {switchSet.single && (
-            <div className="mb-6">
+            <div className="mb-3 p-4 bg-white rounded-lg shadow">
               <div className="flex justify-between items-center mb-2">
                 <span className="font-medium">單筆投入金額</span>
                 <div className="flex items-center gap-2">
@@ -493,11 +363,13 @@ const RetirementCalculator = ({ type = "Golden" }) => {
               </div>
               {!edit.single && (
                 <CustomSlider
-                  value={input.invMoney}
-                  onChange={(value) => handleSliderChange("invMoney", value)}
                   min={investOptions[0].min}
                   max={investOptions[0].max}
                   step={investOptions[0].step}
+                  value={input.invMoney}
+                  onChange={(value) => {
+                    handleSliderChange("invMoney", value);
+                  }}
                   color={colors.bar}
                 />
               )}
@@ -506,7 +378,7 @@ const RetirementCalculator = ({ type = "Golden" }) => {
 
           {/* 定期定額 */}
           {switchSet.regular && (
-            <div className="mb-6">
+            <div className="mb-3 p-4 bg-white rounded-lg shadow">
               <div className="flex justify-between items-center mb-2">
                 <span className="font-medium">定期定額投入金額</span>
                 <div className="flex items-center gap-2">
@@ -537,11 +409,13 @@ const RetirementCalculator = ({ type = "Golden" }) => {
               </div>
               {!edit.regular && (
                 <CustomSlider
-                  value={input.regMoney}
-                  onChange={(value) => handleSliderChange("regMoney", value)}
                   min={investOptions[1].min}
                   max={investOptions[1].max}
                   step={investOptions[1].step}
+                  value={input.regMoney}
+                  onChange={(value) => {
+                    handleSliderChange("regMoney", value);
+                  }}
                   color={colors.bar}
                 />
               )}
@@ -549,20 +423,23 @@ const RetirementCalculator = ({ type = "Golden" }) => {
           )}
 
           {/* 其他現金準備 */}
-          <div className="mb-6">
+          <div className="mb-3 p-4 bg-white rounded-lg shadow">
             <div className="flex justify-between items-center mb-2">
               <span className="font-medium">其他現金準備</span>
-              <span className="font-bold">
+              <span>
                 {preffix}
-                {toThousand(input.deposit)} 元
+                <span className="font-bold">
+                  {toThousand(input.deposit)}
+                </span>{" "}
+                元
               </span>
             </div>
             <CustomSlider
-              value={input.deposit}
-              onChange={(value) => handleSliderChange("deposit", value)}
               min={investOptions[2].min}
               max={investOptions[2].max}
               step={investOptions[2].step}
+              value={input.deposit}
+              onChange={(value) => handleSliderChange("deposit", value)}
               color={colors.bar}
             />
           </div>
@@ -583,18 +460,38 @@ const RetirementCalculator = ({ type = "Golden" }) => {
               <LineChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="age" />
-                <YAxis />
+                <YAxis
+                  tickFormatter={(value) => {
+                    if (value >= 10000) {
+                      return `${(value / 10000).toFixed(1)}萬`;
+                    } else {
+                      return `${toThousand(value)}`;
+                    }
+                  }}
+                  width={70}
+                />
                 <Tooltip
-                  formatter={(value) => [
-                    `${preffix}${toThousand(value)}萬`,
-                    "",
-                  ]}
+                  formatter={(value, name, item) => {
+                    console.log(item);
+                    if (
+                      item.payload.age === 65 &&
+                      ["較好情況", "一般情況", "較差情況"].includes(item.name)
+                    ) {
+                      item.color = "blue";
+                    }
+                    console.log(value);
+                    return [`${preffix}${(value / 10000).toFixed(1)}萬`, name];
+                  }}
                   labelFormatter={(age) => `年齡: ${age}歲`}
+                  itemSorter={(a, b) => {
+                    return a - b;
+                  }}
                 />
                 <Legend />
                 <Line
                   type="monotone"
                   dataKey="better"
+                  nameKey="better"
                   stroke="#438B41"
                   name="較好情況"
                   strokeWidth={2}
@@ -602,6 +499,7 @@ const RetirementCalculator = ({ type = "Golden" }) => {
                 <Line
                   type="monotone"
                   dataKey="normal"
+                  nameKey="normal"
                   stroke="#6BB169"
                   name="一般情況"
                   strokeWidth={2}
@@ -609,9 +507,35 @@ const RetirementCalculator = ({ type = "Golden" }) => {
                 <Line
                   type="monotone"
                   dataKey="poor"
+                  nameKey="poor"
                   stroke="#A6C7A5"
                   name="較差情況"
                   strokeWidth={2}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="withdrawAll"
+                  nameKey="withdrawAll"
+                  stroke="red"
+                  name="*提領總額"
+                  strokeWidth={2}
+                />
+                {assetData.map((array, index) => (
+                  <ReferenceDot
+                    key={`dot-${index}`}
+                    x={array[0]}
+                    y={array[1]}
+                    r={6}
+                    fill="blue"
+                    stroke="none"
+                  />
+                ))}
+                <ReferenceDot
+                  x={withdrawData[0]}
+                  y={withdrawData[1]}
+                  r={6}
+                  fill="red"
+                  label={{ value: "提領總額", position: "top" }}
                 />
               </LineChart>
             </ResponsiveContainer>
@@ -619,7 +543,7 @@ const RetirementCalculator = ({ type = "Golden" }) => {
 
           <div className="bg-white p-6 rounded-xl shadow-lg mt-6">
             <div className="font-bold mb-4">退休時，預估退休金:</div>
-            <div className="flex flex-wrap gap-4 mb-4">
+            <div className="flex flex-wrap justify-center gap-4 mb-4">
               {text.map((item, index) => (
                 <div key={index} className="flex items-center">
                   <div
@@ -632,15 +556,18 @@ const RetirementCalculator = ({ type = "Golden" }) => {
             </div>
             <div className="text-xs text-gray-500">
               <div>* 報酬率假設：</div>
-              <div>
-                較好情況為年化報酬率
-                {(constant.Rinvest[input.kyc][0] * 100).toFixed(1)}%；
-                一般情況為年化報酬率
-                {(constant.Rinvest[input.kyc][1] * 100).toFixed(1)}%；
-                較差情況為年化報酬率
-                {(constant.Rinvest[input.kyc][2] * 100).toFixed(1)}%。
-                每年提領金額以通膨率 2% 增加
-              </div>
+              {["較好", "一般", "較差"].map((situation, index) => {
+                return (
+                  <div key={index}>
+                    {situation}情況為年化報酬率
+                    {(retireConstant.Rinvest[input.kyc][index] * 100).toFixed(
+                      1
+                    )}
+                    %。
+                  </div>
+                );
+              })}
+              <div>每年提領金額以通膨率 2% 增加</div>
             </div>
           </div>
         </section>
@@ -683,15 +610,7 @@ const RetirementCalculator = ({ type = "Golden" }) => {
         )}
 
         {/* 免責聲明 */}
-        <div className="text-xs text-gray-500 mt-8">
-          <div>* 重要聲明：</div>
-          <div>
-            投資人因不同時間進場，將有不同之投資績效，過去之績效亦不代表未來績效之保證。以過去績效進行模擬投資組合之報酬率時，僅為歷史資料模擬投資組合之結果，不代表本投資組合之實際報酬率及未來績效保證，不同時間進行模擬操作，結果可能不同。
-          </div>
-          <div>
-            阿爾發投顧自當盡力提供正確資訊，所載資料均來自或本諸我們相信可靠之來源，但對其完整性、即時性和正確性不做任何擔保，如有錯漏或疏忽，本公司或關係企業與其任何董事或受僱人等，對此不負任何法律責任。模擬之結果僅供參考，無法保證準確性，未來實際狀況可能與模擬數值有所落差。
-          </div>
-        </div>
+        <RiskNoticeComponent />
       </div>
     </div>
   );

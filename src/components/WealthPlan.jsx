@@ -9,17 +9,21 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
-import { useRiskNotes } from "../context/useRiskNotes";
+import { Edit, Check } from "lucide-react";
+import {
+  riskText,
+  wealthInput,
+  wealthConstant,
+  situation,
+  chartDataCalculation_Aum,
+} from "../utilty/Formula";
+import RiskNoticeComponent from "./RiskNotice";
+import RiskForKYCComponent from "./RiskForKYC";
+import CustomSlider from "./CustomSlider";
+import CommonContext from "../context/CommonContext";
 
-export const WealthPlanCalculator = ({ type = "Golden" }) => {
-  const [company] = useState(type);
-  const [input, setInput] = useState({
-    kyc: 1,
-    nowAge: 30,
-    invYear: 20,
-    invMoney: 100000,
-    regMoney: 10000,
-  });
+export const WealthPlanCalculator = ({ utils }) => {
+  const [input, setInput] = useState(wealthInput);
 
   const [switchSet, setSwitchSet] = useState({
     single: true,
@@ -36,17 +40,14 @@ export const WealthPlanCalculator = ({ type = "Golden" }) => {
   const [textRegular, setTextRegular] = useState("10,000");
   const [chartData, setChartData] = useState([]);
   const [assetData, setAssetData] = useState([0, 0, 0]);
+  const [text, setText] = useState([]);
+  const [errors, setErrors] = useState([]);
 
-  // 風險告知
-  const { riskNotes } = useRiskNotes();
+  // 工具函數
+  const { toThousand, addCommas, commasToNumber } = utils;
 
-  // 風險等級選項
-  const riskText = [
-    { value: 0, text: "保守型" },
-    { value: 1, text: "穩健型" },
-    { value: 2, text: "積極型" },
-    { value: 3, text: "進取型" },
-  ];
+  // 顏色配置
+  const { colors } = React.useContext(CommonContext);
 
   // 目標設定選項
   const goalOptions = [
@@ -89,53 +90,23 @@ export const WealthPlanCalculator = ({ type = "Golden" }) => {
   ];
 
   // 報酬率設定 (簡化版)
-  const returnRates = {
-    0: [0.03, 0.02, 0.01], // 保守型
-    1: [0.06, 0.04, 0.02], // 穩健型
-    2: [0.09, 0.06, 0.03], // 積極型
-    3: [0.12, 0.08, 0.04], // 進取型
-  };
+  const returnRates = [
+    [0.03, 0.02, 0.01], // 保守型
+    [0.06, 0.04, 0.02], // 穩健型
+    [0.09, 0.06, 0.03], // 積極型
+    [0.12, 0.08, 0.04], // 進取型
+  ];
 
-  // 樣式配置
-  const getCompanyStyles = (company) => {
-    const styles = {
-      Golden: {
-        backgroundColor: "#f2eada",
-        textColor: "black",
-        thumbColor: "#cc9c50",
-        barColor: "#cc9c50",
-      },
-      JyuMei: {
-        backgroundColor: "#FFF7F7",
-        textColor: "#393939",
-        thumbColor: "#BE0000",
-        barColor: "#BE0000",
-      },
-    };
-    return styles[company] || styles.Golden;
-  };
-
-  const companyStyles = getCompanyStyles(company);
-
-  // 工具函數
-  const toThousand = (num) => {
-    return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-  };
-
-  const commasToNumber = (str) => {
-    return parseInt(str.toString().replace(/,/g, ""), 10) || 0;
-  };
-
-  const addCommas = (num) => {
-    return toThousand(num);
-  };
-
-  const getPreffix = () => {
-    return switchNTD ? "NT$" : "$";
-  };
+  // 貨幣前綴
+  const preffix = switchNTD ? "NT$ " : "US$ ";
 
   // 計算投資結果
   const calculateInvestment = () => {
+    const [XLineData, YLineData, AssetAumData] = chartDataCalculation_Aum(
+      input,
+      situation("wealth"),
+      wealthConstant
+    );
     const years = input.invYear;
     const rates = returnRates[input.kyc];
     const singleAmount = switchSet.single ? input.invMoney : 0;
@@ -181,6 +152,29 @@ export const WealthPlanCalculator = ({ type = "Golden" }) => {
 
     setChartData(data);
     setAssetData(finalAssets);
+
+    // 更新文字顯示
+    const { better, normal, poor } = AssetAumData;
+    setText([
+      [
+        "#438B41",
+        `市場較好情況下，您可能累積到：${preffix} ${(better[0] / 10000).toFixed(
+          1
+        )}萬`,
+      ],
+      [
+        "#6BB169",
+        `市場一般情況下，您可能累積到：${preffix} ${(normal[0] / 10000).toFixed(
+          1
+        )}萬`,
+      ],
+      [
+        "#A6C7A5",
+        `市場較差情況下，您可能累積到：${preffix} ${(poor[0] / 10000).toFixed(
+          1
+        )}萬`,
+      ],
+    ]);
   };
 
   // 處理滑桿變化
@@ -212,21 +206,18 @@ export const WealthPlanCalculator = ({ type = "Golden" }) => {
   };
 
   // 驗證規則
-  const validateLifeAge = (value) => {
-    return value <= 120 - input.nowAge;
-  };
-
-  const validateRegularMoney = (value) => {
-    return commasToNumber(value) >= 3500;
-  };
-
-  const validateSingleMoney = (value) => {
-    return commasToNumber(value) >= 35000;
+  const validateInput = () => {
+    let errors = [];
+    if (input.nowAge + input.invYear > 90) {
+      errors.push("現在年齡加上投資期間不可超過90歲");
+    }
+    setErrors(errors);
   };
 
   // 效果
   useEffect(() => {
     calculateInvestment();
+    validateInput();
   }, [input, switchSet]);
 
   useEffect(() => {
@@ -240,47 +231,32 @@ export const WealthPlanCalculator = ({ type = "Golden" }) => {
   return (
     <div
       className="min-h-screen"
-      style={{ backgroundColor: companyStyles.backgroundColor }}
+      style={{ backgroundColor: colors.background }}
     >
       <div
         className="container mx-auto px-4 py-8"
-        style={{ color: companyStyles.textColor }}
+        style={{ color: colors.text }}
       >
         {/* 風險等級 */}
-        <section className="mb-8">
-          <h2 className="text-2xl font-bold mb-6">風險等級</h2>
-          <div className="flex flex-wrap gap-2">
-            {riskText.map((item) => (
-              <button
-                key={item.value}
-                className={`px-6 py-4 rounded-lg text-lg font-medium transition-all duration-200 ${
-                  input.kyc === item.value
-                    ? `shadow-lg text-white`
-                    : "bg-gray-100 opacity-40 hover:opacity-60"
-                }`}
-                style={{
-                  backgroundColor:
-                    input.kyc === item.value
-                      ? companyStyles.barColor
-                      : "#F7F2E8",
-                  color:
-                    input.kyc === item.value
-                      ? "white"
-                      : companyStyles.textColor,
-                }}
-                onClick={() => handleSliderChange("kyc", item.value)}
-              >
-                {item.text}
-              </button>
-            ))}
-          </div>
-        </section>
+        <RiskForKYCComponent
+          input={input}
+          colors={colors}
+          riskText={riskText}
+          handleChange={handleSliderChange}
+        ></RiskForKYCComponent>
 
         {/* 目標設定 */}
         <section className="mb-8">
-          <h2 className="text-2xl font-bold mb-6">目標設定</h2>
+          <h2 className="text-2xl font-bold mb-4">目標設定</h2>
+          {errors.length > 0 && (
+            <ul className="text-red-600 font-bold text-sm space-y-1">
+              {errors.map((err, index) => (
+                <li key={index}>• {err}</li>
+              ))}
+            </ul>
+          )}
           {goalOptions.map((option) => (
-            <div key={option.prop} className="mb-6">
+            <div key={option.prop} className="mb-4">
               <div className="flex justify-between items-center mb-4">
                 <span className="text-lg font-medium">{option.name}</span>
                 <span className="text-lg">
@@ -290,45 +266,23 @@ export const WealthPlanCalculator = ({ type = "Golden" }) => {
                   <span className="ml-2">{option.unit}</span>
                 </span>
               </div>
-              <input
-                type="range"
+              <CustomSlider
                 min={option.min}
                 max={option.max}
                 step={option.step}
                 value={input[option.prop]}
-                onChange={(e) =>
-                  handleSliderChange(option.prop, parseInt(e.target.value))
-                }
-                className="w-full h-3 rounded-full appearance-none cursor-pointer"
-                style={{
-                  background: `linear-gradient(to right, ${
-                    companyStyles.barColor
-                  } 0%, ${companyStyles.barColor} ${
-                    ((input[option.prop] - option.min) /
-                      (option.max - option.min)) *
-                    100
-                  }%, #e5e7eb ${
-                    ((input[option.prop] - option.min) /
-                      (option.max - option.min)) *
-                    100
-                  }%, #e5e7eb 100%)`,
-                }}
+                onChange={(value) => handleSliderChange(option.prop, value)}
+                color={colors.bar}
               />
-              {option.prop === "invYear" &&
-                !validateLifeAge(input[option.prop]) && (
-                  <p className="text-red-500 text-sm mt-1">
-                    不得大於{120 - input.nowAge}年
-                  </p>
-                )}
             </div>
           ))}
         </section>
 
         {/* 投入金額 */}
         <section className="mb-8">
-          <div className="flex items-center mb-4">
-            <h2 className="text-2xl font-bold mr-6">投入金額</h2>
-            <div className="flex gap-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-2xl font-bold">投入金額</h2>
+            <div className="flex gap-4">
               <label className="flex items-center">
                 <input
                   type="checkbox"
@@ -357,17 +311,15 @@ export const WealthPlanCalculator = ({ type = "Golden" }) => {
                 />
                 定期定額
               </label>
-              {company === "JyuMei" && (
-                <label className="flex items-center">
-                  <input
-                    type="checkbox"
-                    checked={switchNTD}
-                    onChange={(e) => setSwitchNTD(e.target.checked)}
-                    className="mr-2"
-                  />
-                  顯示台幣
-                </label>
-              )}
+              <label className="flex items-center">
+                <input
+                  type="checkbox"
+                  checked={switchNTD}
+                  onChange={(e) => setSwitchNTD(e.target.checked)}
+                  className="mr-2"
+                />
+                顯示台幣
+              </label>
             </div>
           </div>
 
@@ -379,13 +331,11 @@ export const WealthPlanCalculator = ({ type = "Golden" }) => {
 
           {/* 單筆投入 */}
           {switchSet.single && (
-            <div className="mb-6 p-4 bg-white rounded-lg shadow">
-              <div className="flex justify-between items-center mb-4">
-                <span className="text-lg font-medium">
-                  {investOptions[0].name}
-                </span>
-                <div className="flex items-center">
-                  <span>{getPreffix()}</span>
+            <div className="mb-3 p-4 bg-white rounded-lg shadow">
+              <div className="flex justify-between items-center mb-2">
+                <span className="font-medium">單筆投入金額</span>
+                <div className="flex items-center gap-2">
+                  <span>{preffix}</span>
                   {edit.single ? (
                     <input
                       type="text"
@@ -393,54 +343,35 @@ export const WealthPlanCalculator = ({ type = "Golden" }) => {
                       onChange={(e) =>
                         handleTextChange("single", e.target.value)
                       }
-                      className="mx-2 px-3 py-1 border rounded text-center"
+                      className="w-32 p-2 border rounded text-center"
                       placeholder="請輸入金額"
                     />
                   ) : (
-                    <span className="font-bold mx-2">
+                    <span className="font-bold">
                       {toThousand(input.invMoney)}
                     </span>
                   )}
                   <span>{investOptions[0].unit}</span>
                   <button
                     onClick={() => switchEditState("single")}
-                    className="ml-2 px-2 py-1 bg-gray-200 rounded hover:bg-gray-300"
+                    className="p-1 bg-white rounded shadow"
                   >
-                    {edit.single ? "✓" : "✏️"}
+                    {edit.single ? <Check size={16} /> : <Edit size={16} />}
                   </button>
                 </div>
               </div>
               {!edit.single && (
                 <>
-                  <input
-                    type="range"
+                  <CustomSlider
                     min={investOptions[0].min}
                     max={investOptions[0].max}
                     step={investOptions[0].step}
                     value={input.invMoney}
-                    onChange={(e) =>
-                      handleSliderChange("invMoney", parseInt(e.target.value))
-                    }
-                    className="w-full h-3 rounded-full appearance-none cursor-pointer"
-                    style={{
-                      background: `linear-gradient(to right, ${
-                        companyStyles.barColor
-                      } 0%, ${companyStyles.barColor} ${
-                        ((input.invMoney - investOptions[0].min) /
-                          (investOptions[0].max - investOptions[0].min)) *
-                        100
-                      }%, #e5e7eb ${
-                        ((input.invMoney - investOptions[0].min) /
-                          (investOptions[0].max - investOptions[0].min)) *
-                        100
-                      }%, #e5e7eb 100%)`,
+                    onChange={(value) => {
+                      handleSliderChange("invMoney", value);
                     }}
+                    color={colors.bar}
                   />
-                  {!validateSingleMoney(input.invMoney) && (
-                    <p className="text-red-500 text-sm mt-1">
-                      單筆投入不得小於{getPreffix()} 35,000元
-                    </p>
-                  )}
                 </>
               )}
             </div>
@@ -448,13 +379,11 @@ export const WealthPlanCalculator = ({ type = "Golden" }) => {
 
           {/* 定期定額 */}
           {switchSet.regular && (
-            <div className="mb-6 p-4 bg-white rounded-lg shadow">
-              <div className="flex justify-between items-center mb-4">
-                <span className="text-lg font-medium">
-                  {investOptions[1].name}
-                </span>
-                <div className="flex items-center">
-                  <span>{getPreffix()}</span>
+            <div className="mb-3 p-4 bg-white rounded-lg shadow">
+              <div className="flex justify-between items-center mb-2">
+                <span className="font-medium">定期定額投入金額</span>
+                <div className="flex items-center gap-2">
+                  <span>{preffix}</span>
                   {edit.regular ? (
                     <input
                       type="text"
@@ -462,54 +391,35 @@ export const WealthPlanCalculator = ({ type = "Golden" }) => {
                       onChange={(e) =>
                         handleTextChange("regular", e.target.value)
                       }
-                      className="mx-2 px-3 py-1 border rounded text-center"
+                      className="px-3 py-1 border rounded text-center"
                       placeholder="請輸入金額"
                     />
                   ) : (
-                    <span className="font-bold mx-2">
+                    <span className="font-bold">
                       {toThousand(input.regMoney)}
                     </span>
                   )}
                   <span>{investOptions[1].unit}</span>
                   <button
-                    onClick={() => switchEditState("regular")}
-                    className="ml-2 px-2 py-1 bg-gray-200 rounded hover:bg-gray-300"
+                    onClick={() => switchEditState("single")}
+                    className="p-1 bg-white rounded shadow"
                   >
-                    {edit.regular ? "✓" : "✏️"}
+                    {edit.single ? <Check size={16} /> : <Edit size={16} />}
                   </button>
                 </div>
               </div>
               {!edit.regular && (
                 <>
-                  <input
-                    type="range"
+                  <CustomSlider
                     min={investOptions[1].min}
                     max={investOptions[1].max}
                     step={investOptions[1].step}
                     value={input.regMoney}
-                    onChange={(e) =>
-                      handleSliderChange("regMoney", parseInt(e.target.value))
-                    }
-                    className="w-full h-3 rounded-full appearance-none cursor-pointer"
-                    style={{
-                      background: `linear-gradient(to right, ${
-                        companyStyles.barColor
-                      } 0%, ${companyStyles.barColor} ${
-                        ((input.regMoney - investOptions[1].min) /
-                          (investOptions[1].max - investOptions[1].min)) *
-                        100
-                      }%, #e5e7eb ${
-                        ((input.regMoney - investOptions[1].min) /
-                          (investOptions[1].max - investOptions[1].min)) *
-                        100
-                      }%, #e5e7eb 100%)`,
+                    onChange={(value) => {
+                      handleSliderChange("regMoney", value);
                     }}
+                    color={colors.bar}
                   />
-                  {!validateRegularMoney(input.regMoney) && (
-                    <p className="text-red-500 text-sm mt-1">
-                      定期定額不得小於{getPreffix()} 3,500元
-                    </p>
-                  )}
                 </>
               )}
             </div>
@@ -526,7 +436,7 @@ export const WealthPlanCalculator = ({ type = "Golden" }) => {
                 <XAxis dataKey="year" />
                 <YAxis />
                 <Tooltip
-                  formatter={(value) => `${getPreffix()} ${toThousand(value)}`}
+                  formatter={(value) => `${preffix} ${toThousand(value)}`}
                 />
                 <Legend />
                 <Line
@@ -561,53 +471,49 @@ export const WealthPlanCalculator = ({ type = "Golden" }) => {
             <div className="mb-6 font-bold text-lg">
               投資時間到時，預估資產累積:
             </div>
-            <div className="space-y-2">
+            <div className="flex flex-wrap justify-center gap-4 mb-4">
               <div className="flex items-center">
                 <span className="w-3 h-3 bg-red-300 rounded-full mr-2"></span>
                 <span className="text-sm">
-                  市場較好情況下，您可能累積到：{getPreffix()}{" "}
+                  市場較好情況下，您可能累積到：{preffix}{" "}
                   {toThousand(Math.round(assetData[0] / 10000))}萬
                 </span>
               </div>
               <div className="flex items-center">
                 <span className="w-3 h-3 bg-pink-300 rounded-full mr-2"></span>
                 <span className="text-sm">
-                  市場一般情況下，您可能累積到：{getPreffix()}{" "}
+                  市場一般情況下，您可能累積到：{preffix}{" "}
                   {toThousand(Math.round(assetData[1] / 10000))}萬
                 </span>
               </div>
               <div className="flex items-center">
                 <span className="w-3 h-3 bg-pink-200 rounded-full mr-2"></span>
                 <span className="text-sm">
-                  市場較差情況下，您可能累積到：{getPreffix()}{" "}
+                  市場較差情況下，您可能累積到：{preffix}{" "}
                   {toThousand(Math.round(assetData[2] / 10000))}萬
                 </span>
               </div>
             </div>
             <div className="mt-6 text-xs text-gray-600">
               <div>* 報酬率假設：</div>
-              <div>
-                較好情況為年化報酬率
-                {(returnRates[input.kyc][0] * 100).toFixed(1)}%；
-                一般情況為年化報酬率
-                {(returnRates[input.kyc][1] * 100).toFixed(1)}%；
-                較差情況為年化報酬率
-                {(returnRates[input.kyc][2] * 100).toFixed(1)}%。
-                每年提領金額以通膨率 2% 增加
-              </div>
+              {["較好", "一般", "較差"].map((situation, index) => {
+                return (
+                  <div key={index}>
+                    {situation}情況為年化報酬率
+                    {(wealthConstant.Rinvest[input.kyc][index] * 100).toFixed(
+                      1
+                    )}
+                    %。
+                  </div>
+                );
+              })}
+              <div>每年提領金額以通膨率 2% 增加</div>
             </div>
           </div>
         </section>
 
         {/* 免責聲明 */}
-        <section className="text-xs text-gray-600 px-4">
-          <p className="mb-2">* 重要聲明：</p>
-          <ul>
-            {riskNotes.map((note, index) => (
-              <li key={index}>{note}</li>
-            ))}
-          </ul>
-        </section>
+        <RiskNoticeComponent />
       </div>
     </div>
   );
