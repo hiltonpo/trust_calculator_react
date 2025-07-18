@@ -1,4 +1,4 @@
-import { createContext } from "react";
+import { createContext, useContext } from "react";
 
 // 顏色配置
 const colors = {
@@ -12,4 +12,10 @@ const colors = {
 
 const CommonContext = createContext({ colors });
 
-export default CommonContext;
+export const useCommon = () => {
+  const context = useContext(CommonContext);
+  if (!context) {
+    throw new Error("ComuseCommon is error");
+  }
+  return context;
+};

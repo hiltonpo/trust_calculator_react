@@ -2,8 +2,10 @@ import React, { useState, useEffect, useMemo, useRef } from "react";
 import { ChevronDown } from "lucide-react";
 import WealthPlan from "../components/WealthPlan";
 import RetirePlan from "../components/RetirePlan";
-import "../styles/pages/TrustCalculator.scss";
 import { toThousand, addCommas, commasToNumber } from "../utilty/Utility";
+import { ExchangeProvider } from "../context/ExchangeContext";
+import ExchangeControl from "../components/ExchangeControl";
+import "../styles/pages/TrustCalculator.scss";
 
 const TrustCalculator = () => {
   const [isAnimated, setIsAnimated] = useState(false);
@@ -121,11 +123,12 @@ const TrustCalculator = () => {
         </button>
       </div>
 
-      {/* Plan Components */}
-      <div className="min-h-96 bg-white">
+      {/* Plan Components With Exchange */}
+      <ExchangeProvider>
+        <ExchangeControl />
         {plan === 0 && <RetirePlan utils={utilityFunctions} />}
         {plan === 1 && <WealthPlan utils={utilityFunctions} />}
-      </div>
+      </ExchangeProvider>
 
       {/* Footer */}
       <div className="py-4" style={{ backgroundColor: "beige" }}>

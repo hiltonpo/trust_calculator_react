@@ -8,7 +8,6 @@ import {
   Tooltip,
   Legend,
   ReferenceDot,
-  Scatter,
   ResponsiveContainer,
 } from "recharts";
 import { Edit, Check } from "lucide-react";
@@ -23,10 +22,10 @@ import {
 import RiskNoticeComponent from "./RiskNotice";
 import RiskForKYCComponent from "./RiskForKYC";
 import CustomSlider from "./CustomSlider";
-import CommonContext from "../context/CommonContext";
+import { useCommon } from "../context/CommonContext";
+import { useCurrency } from "../context/ExchangeContext";
 
 const RetirementCalculator = ({ utils }) => {
-  const [switchNTD, setSwitchNTD] = useState(false);
   const [switchSet, setSwitchSet] = useState({ single: true, regular: true });
   const [edit, setEdit] = useState({ single: false, regular: false });
   const [warning, setWarning] = useState(false);
@@ -46,11 +45,15 @@ const RetirementCalculator = ({ utils }) => {
   // 工具函數
   const { toThousand, addCommas, commasToNumber } = utils;
 
-  // 貨幣前綴
-  const preffix = switchNTD ? "NT$ " : "US$ ";
-
   // 顏色配置
-  const { colors } = React.useContext(CommonContext);
+  const { colors } = useCommon();
+
+  // 貨幣選擇
+  const { exchangeRates, selectedCurrency } = useCurrency();
+
+  // 貨幣前綴
+  const preffix = `${selectedCurrency}$ `;
+  const currency = exchangeRates[selectedCurrency];
 
   // 目標設定選項
   const goalOptions = [
@@ -222,7 +225,7 @@ const RetirementCalculator = ({ utils }) => {
   useEffect(() => {
     generateChartData();
     validateInput();
-  }, [input, switchSet, switchNTD]);
+  }, [input, switchSet, currency]);
 
   useEffect(() => {
     setTextSingle(addCommas(input.invMoney));
@@ -310,16 +313,6 @@ const RetirementCalculator = ({ utils }) => {
                   className="mr-2"
                 />
                 定期定額
-              </label>
-
-              <label className="flex items-center">
-                <input
-                  type="checkbox"
-                  checked={switchNTD}
-                  onChange={(e) => setSwitchNTD(e.target.checked)}
-                  className="mr-2"
-                />
-                顯示台幣
               </label>
             </div>
           </div>
