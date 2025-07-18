@@ -465,14 +465,12 @@ const RetirementCalculator = ({ utils }) => {
                 />
                 <Tooltip
                   formatter={(value, name, item) => {
-                    console.log(item);
                     if (
                       item.payload.age === 65 &&
                       ["較好情況", "一般情況", "較差情況"].includes(item.name)
                     ) {
                       item.color = "blue";
                     }
-                    console.log(value);
                     return [`${preffix}${(value / 10000).toFixed(1)}萬`, name];
                   }}
                   labelFormatter={(age) => `年齡: ${age}歲`}
