@@ -20,9 +20,11 @@ import {
 import RiskNoticeComponent from "./RiskNotice";
 import RiskForKYCComponent from "./RiskForKYC";
 import CustomSlider from "./CustomSlider";
-import { useCommon } from "../context/CommonContext";
-import { useCurrency } from "../context/ExchangeContext";
-
+import { useSelector } from "react-redux";
+import {
+  selectSelectedCurrency,
+  selectExchangeRates,
+} from "../store/modules/commonSlice";
 export const WealthPlanCalculator = ({ utils }) => {
   const [input, setInput] = useState(wealthInput);
 
@@ -47,7 +49,7 @@ export const WealthPlanCalculator = ({ utils }) => {
   const { toThousand, addCommas, commasToNumber } = utils;
 
   // 顏色配置
-  const { colors } = useCommon();
+  const colors = useSelector((state) => state.common.colors);
 
   // 目標設定選項
   const goalOptions = [
@@ -98,7 +100,8 @@ export const WealthPlanCalculator = ({ utils }) => {
   ];
 
   // 貨幣選擇
-  const { exchangeRates, selectedCurrency } = useCurrency();
+  const selectedCurrency = useSelector(selectSelectedCurrency);
+  const exchangeRates = useSelector(selectExchangeRates);
 
   // 貨幣前綴
   const preffix = `${selectedCurrency}$ `;

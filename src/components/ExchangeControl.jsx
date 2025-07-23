@@ -6,25 +6,40 @@ import {
   JapaneseYen,
   AlertCircle,
 } from "lucide-react";
-import { useCurrency } from "../context/ExchangeContext";
+import { useSelector, useDispatch } from "react-redux";
+import {
+  setSelectedCurrency,
+  fetchExchangeRates,
+  selectSelectedCurrency,
+  selectLoading,
+  selectLastUpdate,
+  selectError,
+  selectCurrencies,
+  selectExchangeRates,
+} from "../store/modules/commonSlice";
 
 const ExchangeControl = () => {
-  const {
-    selectedCurrency,
-    setSelectedCurrency,
-    exchangeRates,
-    loading,
-    lastUpdate,
-    error,
-    currencies,
-    fetchExchangeRates,
-  } = useCurrency();
+  const dispatch = useDispatch();
+
+  const selectedCurrency = useSelector(selectSelectedCurrency);
+  const exchangeRates = useSelector(selectExchangeRates);
+  const loading = useSelector(selectLoading);
+  const lastUpdate = useSelector(selectLastUpdate);
+  const error = useSelector(selectError);
+  const currencies = useSelector(selectCurrencies);
 
   const currencyIcons = {
     USD: BadgeDollarSign,
     TWD: DollarSign,
     JPY: JapaneseYen,
   };
+
+  // useEffect(() => {
+  //   if (!hasInitialized) {
+  //     dispatch(setInitialized());
+  //     dispatch(fetchExchangeRates());
+  //   }
+  // }, [dispatch, hasInitialized]);
 
   return (
     <div style={{ background: "#FBF8E6" }}>
@@ -35,7 +50,9 @@ const ExchangeControl = () => {
           {/* 匯率選擇和更新 */}
           <div className="absolute right-5">
             <button
-              onClick={fetchExchangeRates}
+              onClick={() => {
+                dispatch(fetchExchangeRates());
+              }}
               disabled={loading}
               className="flex items-center space-x-2 px-3 py-2 bg-blue-800 text-white rounded-md hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
             >
@@ -70,7 +87,7 @@ const ExchangeControl = () => {
                     ? "border-blue-500 bg-blue-50"
                     : "border-gray-200 bg-white hover:border-gray-300"
                 }`}
-                onClick={() => setSelectedCurrency(currency.code)}
+                onClick={() => dispatch(setSelectedCurrency(currency.code))}
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-1">

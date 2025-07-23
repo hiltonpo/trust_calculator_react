@@ -5,8 +5,6 @@ import "./App.scss";
 import TrustCalculator from "./pages/TrustCalculator";
 
 function App() {
-  const [count, setCount] = useState(0);
-
   return (
     <>
       <TrustCalculator />

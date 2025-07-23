@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, use } from "react";
 import {
   LineChart,
   Line,
@@ -22,8 +22,11 @@ import {
 import RiskNoticeComponent from "./RiskNotice";
 import RiskForKYCComponent from "./RiskForKYC";
 import CustomSlider from "./CustomSlider";
-import { useCommon } from "../context/CommonContext";
-import { useCurrency } from "../context/ExchangeContext";
+import { useSelector } from "react-redux";
+import {
+  selectSelectedCurrency,
+  selectExchangeRates,
+} from "../store/modules/commonSlice";
 
 const RetirementCalculator = ({ utils }) => {
   const [switchSet, setSwitchSet] = useState({ single: true, regular: true });
@@ -46,10 +49,11 @@ const RetirementCalculator = ({ utils }) => {
   const { toThousand, addCommas, commasToNumber } = utils;
 
   // 顏色配置
-  const { colors } = useCommon();
+  const colors = useSelector((state) => state.common.colors);
 
   // 貨幣選擇
-  const { exchangeRates, selectedCurrency } = useCurrency();
+  const selectedCurrency = useSelector(selectSelectedCurrency);
+  const exchangeRates = useSelector(selectExchangeRates);
 
   // 貨幣前綴
   const preffix = `${selectedCurrency}$ `;

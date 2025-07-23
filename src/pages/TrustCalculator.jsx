@@ -3,7 +3,6 @@ import { ChevronDown } from "lucide-react";
 import WealthPlan from "../components/WealthPlan";
 import RetirePlan from "../components/RetirePlan";
 import { toThousand, addCommas, commasToNumber } from "../utilty/Utility";
-import { ExchangeProvider } from "../context/ExchangeContext";
 import ExchangeControl from "../components/ExchangeControl";
 import "../styles/pages/TrustCalculator.scss";
 
@@ -124,11 +123,9 @@ const TrustCalculator = () => {
       </div>
 
       {/* Plan Components With Exchange */}
-      <ExchangeProvider>
-        <ExchangeControl />
-        {plan === 0 && <RetirePlan utils={utilityFunctions} />}
-        {plan === 1 && <WealthPlan utils={utilityFunctions} />}
-      </ExchangeProvider>
+      <ExchangeControl />
+      {plan === 0 && <RetirePlan utils={utilityFunctions} />}
+      {plan === 1 && <WealthPlan utils={utilityFunctions} />}
 
       {/* Footer */}
       <div className="py-4" style={{ backgroundColor: "beige" }}>
