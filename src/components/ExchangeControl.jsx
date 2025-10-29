@@ -43,12 +43,13 @@ const ExchangeControl = () => {
 
   return (
     <div style={{ background: "#FBF8E6" }}>
-      <div className="px-4 py-4">
-        <div className="flex items-center justify-center">
+      <div className="container mx-auto px-4 py-4">
+        <div className="flex items-center justify-between">
+          <div style={{ width: "104px" }}></div>
           <h1 className="text-2xl font-bold text-gray-900">貨幣選擇</h1>
 
           {/* 匯率選擇和更新 */}
-          <div className="absolute right-5">
+          <div className="">
             <button
               onClick={() => {
                 dispatch(fetchExchangeRates());

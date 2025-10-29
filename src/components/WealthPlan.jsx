@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   LineChart,
   Line,
@@ -16,7 +16,7 @@ import {
   wealthConstant,
   situation,
   chartDataCalculation_Aum,
-} from "../utilty/Formula";
+} from "../utility/Formula";
 import RiskNoticeComponent from "./RiskNotice";
 import RiskForKYCComponent from "./RiskForKYC";
 import CustomSlider from "./CustomSlider";
@@ -105,7 +105,6 @@ export const WealthPlanCalculator = ({ utils }) => {
 
   // 貨幣前綴
   const preffix = `${selectedCurrency}$ `;
-  const currency = exchangeRates[selectedCurrency];
 
   // 計算投資結果
   const calculateInvestment = () => {
@@ -184,16 +183,16 @@ export const WealthPlanCalculator = ({ utils }) => {
     ]);
   };
 
-  // 處理滑桿變化
-  const handleSliderChange = (prop, value) => {
+  // 處理滑桿變化 (優化：使用 useCallback)
+  const handleSliderChange = useCallback((prop, value) => {
     setInput((prev) => ({
       ...prev,
       [prop]: value,
     }));
-  };
+  }, []);
 
-  // 處理文字輸入
-  const handleTextChange = (type, value) => {
+  // 處理文字輸入 (優化：使用 useCallback)
+  const handleTextChange = useCallback((type, value) => {
     const numValue = commasToNumber(value);
     if (type === "single") {
       setTextSingle(value);
@@ -202,15 +201,15 @@ export const WealthPlanCalculator = ({ utils }) => {
       setTextRegular(value);
       setInput((prev) => ({ ...prev, regMoney: numValue }));
     }
-  };
+  }, [commasToNumber]);
 
-  // 切換編輯模式
-  const switchEditState = (type) => {
+  // 切換編輯模式 (優化：使用 useCallback)
+  const switchEditState = useCallback((type) => {
     setEdit((prev) => ({
       ...prev,
       [type]: !prev[type],
     }));
-  };
+  }, []);
 
   // 驗證規則
   const validateInput = () => {
@@ -274,6 +273,7 @@ export const WealthPlanCalculator = ({ utils }) => {
                 </span>
               </div>
               <CustomSlider
+                name={option.name}
                 min={option.min}
                 max={option.max}
                 step={option.step}
@@ -361,6 +361,7 @@ export const WealthPlanCalculator = ({ utils }) => {
               {!edit.single && (
                 <>
                   <CustomSlider
+                    name="單筆投入金額"
                     min={investOptions[0].min}
                     max={investOptions[0].max}
                     step={investOptions[0].step}

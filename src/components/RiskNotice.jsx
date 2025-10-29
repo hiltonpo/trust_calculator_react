@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React from "react";
 
 // 風險提示資料
 const riskNotes = [

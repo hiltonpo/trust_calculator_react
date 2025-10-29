@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useMemo, useCallback } from "react";
 
 // 自定義滑動條組件
 const CustomSlider = ({
@@ -10,17 +10,22 @@ const CustomSlider = ({
   color,
   className,
   disabled = false,
+  name, // 新增：用於無障礙功能
 }) => {
   // 計算進度百分比
-  const percentage = ((value - min) / (max - min)) * 100;
+  const percentage = useMemo(
+    () => ((value - min) / (max - min)) * 100,
+    [value, min, max]
+  );
 
   // 處理滑動條變化
-  const handleChange = (e) => {
+  const handleChange = useCallback((e) => {
     const newValue = parseInt(e.target.value);
     onChange?.(newValue);
-  };
+  }, [onChange]);
 
-  const thumbStyles = {
+  // Memoize thumb styles
+  const thumbStyles = useMemo(() => ({
     width: "24px",
     height: "24px",
     background: color,
@@ -28,7 +33,12 @@ const CustomSlider = ({
     boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
     cursor: "pointer",
     borderRadius: "50%",
-  };
+  }), [color]);
+
+  // Memoize gradient background
+  const backgroundStyle = useMemo(() => ({
+    background: `linear-gradient(to right, ${color} 0%, ${color} ${percentage}%, #e5e7eb ${percentage}%, #e5e7eb 100%)`,
+  }), [color, percentage]);
 
   return (
     <div className="relative">
@@ -66,12 +76,14 @@ const CustomSlider = ({
         value={value}
         onChange={handleChange}
         disabled={disabled}
+        aria-label={name || "滑動條"}
+        aria-valuemin={min}
+        aria-valuemax={max}
+        aria-valuenow={value}
         className={`custom-slider w-full h-3 rounded-full appearance-none cursor-pointer ${
           disabled ? "cursor-not-allowed opacity-50" : ""
         } ${className}`}
-        style={{
-          background: `linear-gradient(to right, ${color} 0%, ${color} ${percentage}%, #e5e7eb ${percentage}%, #e5e7eb 100%)`,
-        }}
+        style={backgroundStyle}
       />
     </div>
   );

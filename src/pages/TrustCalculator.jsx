@@ -1,9 +1,11 @@
-import React, { useState, useEffect, useMemo, useRef } from "react";
+import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { ChevronDown } from "lucide-react";
 import WealthPlan from "../components/WealthPlan";
 import RetirePlan from "../components/RetirePlan";
-import { toThousand, addCommas, commasToNumber } from "../utilty/Utility";
+import { toThousand, addCommas, commasToNumber } from "../utility/Utility";
 import ExchangeControl from "../components/ExchangeControl";
+import SlidingBlock from "../components/SlidingBlock";
+import StockData from "../components/StockData";
 import "../styles/pages/TrustCalculator.scss";
 
 const TrustCalculator = () => {
@@ -11,19 +13,22 @@ const TrustCalculator = () => {
   const [plan, setPlan] = useState(0);
   const nextSectionRef = useRef(null);
 
-  const utilityFunctions = {
+  // Memoize utility functions to prevent recreating on each render
+  const utilityFunctions = useMemo(() => ({
     toThousand,
     addCommas,
     commasToNumber,
-  };
+  }), []);
 
-  const handleScroll = () => {
+  // Memoize scroll handler
+  const handleScroll = useCallback(() => {
     nextSectionRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
+  }, []);
 
-  const choosePlan = (val) => {
+  // Memoize plan chooser
+  const choosePlan = useCallback((val) => {
     setPlan(val);
-  };
+  }, []);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -88,7 +93,7 @@ const TrustCalculator = () => {
               onClick={handleScroll}
             >
               <span className="text-lg">click me to scroll</span>
-              <ChevronDown className="w-4 h-4 mx-auto mt-2 scroll-arrow" />
+              <ChevronDown size={36} className="mx-auto mt-2 scroll-arrow" />
             </div>
           </div>
         </div>
@@ -124,6 +129,9 @@ const TrustCalculator = () => {
 
       {/* Plan Components With Exchange */}
       <ExchangeControl />
+      <SlidingBlock>
+        <StockData />
+      </SlidingBlock>
       {plan === 0 && <RetirePlan utils={utilityFunctions} />}
       {plan === 1 && <WealthPlan utils={utilityFunctions} />}
 

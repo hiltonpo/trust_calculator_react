@@ -1,5 +1,5 @@
 // import * as echarts from "echarts/core";
-import { toThousand } from "../utilty/Utility";
+import { toThousand } from "../utility/Utility";
 
 export const suffix = {
   year: "年",

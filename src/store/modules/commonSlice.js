@@ -3,6 +3,37 @@ import {
   createAsyncThunk,
   createSelector,
 } from "@reduxjs/toolkit";
+import { formatDateToYYYYMMDD, processStockData } from "../../utility/Utility";
+
+// 異步thunk 獲取股票資訊（台灣證券交易所）
+export const fetchStockData = createAsyncThunk(
+  "stock/fetchStockData",
+  async (
+    {
+      date = formatDateToYYYYMMDD(
+        new Date(new Date().setDate(new Date().getDate() - 1))
+      ),
+      stockNo = "0050",
+    } = {},
+    { rejectWithValue }
+  ) => {
+    try {
+      // 延遲1秒
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
+      const response = await fetch(
+        `/api/stockDay?response=json&date=${date}&stockNo=${stockNo}`
+      );
+      if (!response.ok) {
+        throw new Error("網路請求失敗");
+      }
+      const data = await response.json();
+      return processStockData(data);
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
+  }
+);
 
 // 異步thunk 獲取匯率
 export const fetchExchangeRates = createAsyncThunk(
@@ -28,7 +59,7 @@ export const fetchExchangeRates = createAsyncThunk(
         TWD: TWD,
         JPY: JPY,
       };
-    } catch (error) {
+    } catch {
       return rejectWithValue("獲取匯率失敗，請稍後再試");
     }
   }
@@ -49,9 +80,16 @@ const exchangeInitialState = {
     JPY: 150,
   },
   loading: false,
-  lastUpdate: new Date().toISOString(),
+  lastUpdate: new Date().toLocaleString(),
   error: null,
   currencies,
+};
+
+const stockInitialState = {
+  stockAllData: [],
+  stockError: null,
+  stockLoading: false,
+  stockLastUpdate: new Date().toLocaleString(),
 };
 
 const commonSlice = createSlice({
@@ -66,6 +104,7 @@ const commonSlice = createSlice({
       bar: "#cc9c50",
     },
     ...exchangeInitialState,
+    ...stockInitialState,
   },
   reducers: {
     setSelectedCurrency: (state, action) => {
@@ -74,6 +113,7 @@ const commonSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
+      // Exchange rates reducers
       .addCase(fetchExchangeRates.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -81,18 +121,35 @@ const commonSlice = createSlice({
       .addCase(fetchExchangeRates.fulfilled, (state, action) => {
         state.loading = false;
         state.exchangeRates = action.payload;
-        state.lastUpdate = new Date().toISOString();
+        state.lastUpdate = new Date().toLocaleString();
         state.error = null;
       })
       .addCase(fetchExchangeRates.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
+      })
+      // Stock data reducers
+      .addCase(fetchStockData.pending, (state) => {
+        state.stockLoading = true;
+        state.stockError = null;
+      })
+      .addCase(fetchStockData.fulfilled, (state, action) => {
+        state.stockAllData = action.payload;
+        state.stockLoading = false;
+        state.stockLastUpdate = new Date().toLocaleString();
+        state.stockError = null;
+      })
+      .addCase(fetchStockData.rejected, (state, action) => {
+        state.stockLoading = false;
+        state.stockError = action.payload;
       });
   },
 });
 
-const stateCommon = (state) => state.common;
+// Base selectors
+const selectCommon = (state) => state.common;
 
+// Exchange rate selectors
 export const selectSelectedCurrency = (state) => state.common.selectedCurrency;
 export const selectLoading = (state) => state.common.loading;
 export const selectLastUpdate = (state) => state.common.lastUpdate;
@@ -100,9 +157,18 @@ export const selectError = (state) => state.common.error;
 export const selectCurrencies = (state) => state.common.currencies;
 
 export const selectExchangeRates = createSelector(
-  [stateCommon],
+  [selectCommon],
   (common) => common.exchangeRates
 );
+
+// Stock data selectors
+export const selectStockData = (state) => state.common.stockAllData;
+export const selectStockLoading = (state) => state.common.stockLoading;
+export const selectStockError = (state) => state.common.stockError;
+export const selectStockLastUpdate = (state) => state.common.stockLastUpdate;
+
+// Colors selector
+export const selectColors = (state) => state.common.colors;
 
 export const { setSelectedCurrency } = commonSlice.actions;
 export default commonSlice.reducer;

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, use } from "react";
+import React, { useState, useEffect } from "react";
 import {
   LineChart,
   Line,
@@ -18,7 +18,7 @@ import {
   situation,
   chartDataCalculation,
   optimalSolution,
-} from "../utilty/Formula";
+} from "../utility/Formula";
 import RiskNoticeComponent from "./RiskNotice";
 import RiskForKYCComponent from "./RiskForKYC";
 import CustomSlider from "./CustomSlider";
@@ -181,24 +181,24 @@ const RetirementCalculator = ({ utils }) => {
     setSuggest(suggest);
   };
 
-  // 切換編輯狀態
-  const switchEditState = (type) => {
+  // 切換編輯狀態 (優化：使用 useCallback)
+  const switchEditState = React.useCallback((type) => {
     setEdit((prev) => ({
       ...prev,
       [type]: !prev[type],
     }));
-  };
+  }, []);
 
-  // 處理滑桿變更
-  const handleSliderChange = (prop, value) => {
+  // 處理滑桿變更 (優化：使用 useCallback)
+  const handleSliderChange = React.useCallback((prop, value) => {
     setInput((prev) => ({
       ...prev,
       [prop]: value,
     }));
-  };
+  }, []);
 
-  // 處理文字輸入
-  const handleTextChange = (type, value) => {
+  // 處理文字輸入 (優化：使用 useCallback)
+  const handleTextChange = React.useCallback((type, value) => {
     if (type === "single") {
       setTextSingle(value);
       setInput((prev) => ({
@@ -212,7 +212,7 @@ const RetirementCalculator = ({ utils }) => {
         regMoney: commasToNumber(value),
       }));
     }
-  };
+  }, [commasToNumber]);
 
   // 驗證規則
   const validateInput = () => {
@@ -272,6 +272,7 @@ const RetirementCalculator = ({ utils }) => {
                 </span>
               </div>
               <CustomSlider
+                name={option.name}
                 min={option.min}
                 max={option.max}
                 step={option.step}
@@ -360,6 +361,7 @@ const RetirementCalculator = ({ utils }) => {
               </div>
               {!edit.single && (
                 <CustomSlider
+                  name="單筆投入金額"
                   min={investOptions[0].min}
                   max={investOptions[0].max}
                   step={investOptions[0].step}
@@ -406,6 +408,7 @@ const RetirementCalculator = ({ utils }) => {
               </div>
               {!edit.regular && (
                 <CustomSlider
+                  name="定期定額投入金額"
                   min={investOptions[1].min}
                   max={investOptions[1].max}
                   step={investOptions[1].step}
