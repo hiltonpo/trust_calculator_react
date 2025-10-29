@@ -129,9 +129,9 @@ const TrustCalculator = () => {
 
       {/* Plan Components With Exchange */}
       <ExchangeControl />
-      <SlidingBlock>
+      {/* <SlidingBlock>
         <StockData />
-      </SlidingBlock>
+      </SlidingBlock> */}
       {plan === 0 && <RetirePlan utils={utilityFunctions} />}
       {plan === 1 && <WealthPlan utils={utilityFunctions} />}
 
