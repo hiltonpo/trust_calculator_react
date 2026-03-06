@@ -192,16 +192,19 @@ export const WealthPlanCalculator = ({ utils }) => {
   }, []);
 
   // 處理文字輸入 (優化：使用 useCallback)
-  const handleTextChange = useCallback((type, value) => {
-    const numValue = commasToNumber(value);
-    if (type === "single") {
-      setTextSingle(value);
-      setInput((prev) => ({ ...prev, invMoney: numValue }));
-    } else {
-      setTextRegular(value);
-      setInput((prev) => ({ ...prev, regMoney: numValue }));
-    }
-  }, [commasToNumber]);
+  const handleTextChange = useCallback(
+    (type, value) => {
+      const numValue = commasToNumber(value);
+      if (type === "single") {
+        setTextSingle(value);
+        setInput((prev) => ({ ...prev, invMoney: numValue }));
+      } else {
+        setTextRegular(value);
+        setInput((prev) => ({ ...prev, regMoney: numValue }));
+      }
+    },
+    [commasToNumber]
+  );
 
   // 切換編輯模式 (優化：使用 useCallback)
   const switchEditState = useCallback((type) => {
@@ -390,7 +393,7 @@ export const WealthPlanCalculator = ({ utils }) => {
                       onChange={(e) =>
                         handleTextChange("regular", e.target.value)
                       }
-                      className="px-3 py-1 border rounded text-center"
+                      className="w-32 py-1 border rounded text-center"
                       placeholder="請輸入金額"
                     />
                   ) : (
@@ -400,10 +403,10 @@ export const WealthPlanCalculator = ({ utils }) => {
                   )}
                   <span>{investOptions[1].unit}</span>
                   <button
-                    onClick={() => switchEditState("single")}
+                    onClick={() => switchEditState("regular")}
                     className="p-1 bg-white rounded shadow"
                   >
-                    {edit.single ? <Check size={16} /> : <Edit size={16} />}
+                    {edit.regular ? <Check size={16} /> : <Edit size={16} />}
                   </button>
                 </div>
               </div>

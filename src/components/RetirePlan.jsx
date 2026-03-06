@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   LineChart,
   Line,
@@ -182,7 +182,7 @@ const RetirementCalculator = ({ utils }) => {
   };
 
   // 切換編輯狀態 (優化：使用 useCallback)
-  const switchEditState = React.useCallback((type) => {
+  const switchEditState = useCallback((type) => {
     setEdit((prev) => ({
       ...prev,
       [type]: !prev[type],
@@ -190,7 +190,7 @@ const RetirementCalculator = ({ utils }) => {
   }, []);
 
   // 處理滑桿變更 (優化：使用 useCallback)
-  const handleSliderChange = React.useCallback((prop, value) => {
+  const handleSliderChange = useCallback((prop, value) => {
     setInput((prev) => ({
       ...prev,
       [prop]: value,
@@ -198,21 +198,24 @@ const RetirementCalculator = ({ utils }) => {
   }, []);
 
   // 處理文字輸入 (優化：使用 useCallback)
-  const handleTextChange = React.useCallback((type, value) => {
-    if (type === "single") {
-      setTextSingle(value);
-      setInput((prev) => ({
-        ...prev,
-        invMoney: commasToNumber(value),
-      }));
-    } else {
-      setTextRegular(value);
-      setInput((prev) => ({
-        ...prev,
-        regMoney: commasToNumber(value),
-      }));
-    }
-  }, [commasToNumber]);
+  const handleTextChange = useCallback(
+    (type, value) => {
+      if (type === "single") {
+        setTextSingle(value);
+        setInput((prev) => ({
+          ...prev,
+          invMoney: commasToNumber(value),
+        }));
+      } else {
+        setTextRegular(value);
+        setInput((prev) => ({
+          ...prev,
+          regMoney: commasToNumber(value),
+        }));
+      }
+    },
+    [commasToNumber]
+  );
 
   // 驗證規則
   const validateInput = () => {
