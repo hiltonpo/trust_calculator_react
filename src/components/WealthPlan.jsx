@@ -444,21 +444,21 @@ export const WealthPlanCalculator = ({ utils }) => {
                 <Line
                   type="monotone"
                   dataKey="better"
-                  stroke="#FF7696"
+                  stroke="#1E40AF"
                   name="較好情況"
                   strokeWidth={2}
                 />
                 <Line
                   type="monotone"
                   dataKey="normal"
-                  stroke="#FF9FB5"
+                  stroke="#3B82F6"
                   name="一般情況"
                   strokeWidth={2}
                 />
                 <Line
                   type="monotone"
                   dataKey="poor"
-                  stroke="#FCBECA"
+                  stroke="#93C5FD"
                   name="較差情況"
                   strokeWidth={2}
                 />
@@ -475,21 +475,21 @@ export const WealthPlanCalculator = ({ utils }) => {
             </div>
             <div className="flex flex-wrap justify-center gap-4 mb-4">
               <div className="flex items-center">
-                <span className="w-3 h-3 bg-red-300 rounded-full mr-2"></span>
+                <span className="w-3 h-3 bg-blue-700 rounded-full mr-2"></span>
                 <span className="text-sm">
                   市場較好情況下，您可能累積到：{preffix}{" "}
                   {toThousand(Math.round(assetData[0] / 10000))}萬
                 </span>
               </div>
               <div className="flex items-center">
-                <span className="w-3 h-3 bg-pink-300 rounded-full mr-2"></span>
+                <span className="w-3 h-3 bg-blue-500 rounded-full mr-2"></span>
                 <span className="text-sm">
                   市場一般情況下，您可能累積到：{preffix}{" "}
                   {toThousand(Math.round(assetData[1] / 10000))}萬
                 </span>
               </div>
               <div className="flex items-center">
-                <span className="w-3 h-3 bg-pink-200 rounded-full mr-2"></span>
+                <span className="w-3 h-3 bg-blue-300 rounded-full mr-2"></span>
                 <span className="text-sm">
                   市場較差情況下，您可能累積到：{preffix}{" "}
                   {toThousand(Math.round(assetData[2] / 10000))}萬

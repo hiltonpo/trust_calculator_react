@@ -1,4 +1,10 @@
-import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import React, {
+  useState,
+  useEffect,
+  useMemo,
+  useRef,
+  useCallback,
+} from "react";
 import { ChevronDown } from "lucide-react";
 import WealthPlan from "../components/WealthPlan";
 import RetirePlan from "../components/RetirePlan";
@@ -14,11 +20,14 @@ const TrustCalculator = () => {
   const nextSectionRef = useRef(null);
 
   // Memoize utility functions to prevent recreating on each render
-  const utilityFunctions = useMemo(() => ({
-    toThousand,
-    addCommas,
-    commasToNumber,
-  }), []);
+  const utilityFunctions = useMemo(
+    () => ({
+      toThousand,
+      addCommas,
+      commasToNumber,
+    }),
+    []
+  );
 
   // Memoize scroll handler
   const handleScroll = useCallback(() => {
@@ -80,8 +89,8 @@ const TrustCalculator = () => {
             <div
               className={`flex flex-col items-center text-2xl font-bold heade`}
             >
-              <h1>安養信託</h1>
-              <h1>試算工具</h1>
+              <h1>台股ETF投資</h1>
+              <h1>簡易試算工具</h1>
             </div>
           </div>
 
@@ -136,11 +145,39 @@ const TrustCalculator = () => {
       {plan === 1 && <WealthPlan utils={utilityFunctions} />}
 
       {/* Footer */}
-      <div className="py-4" style={{ backgroundColor: "beige" }}>
+      <div className="py-8" style={{ backgroundColor: "beige" }}>
         <div className="flex justify-center pt-4">
-          <button className="bg-red-600 text-white px-8 py-3 rounded-xl text-lg font-medium hover:bg-red-700 transition-colors">
-            了解更多
-          </button>
+          {/* Tooltip 容器：使用 group 類別 */}
+          <div className="relative group">
+            {/* Tooltip 本體 */}
+            <div
+              className="absolute bottom-full mb-3 left-1/2 -translate-x-1/2 
+                            px-3 py-2 bg-slate-800 text-white text-xs rounded-lg 
+                            opacity-0 group-hover:opacity-100 transition-opacity duration-300 
+                            whitespace-nowrap pointer-events-none z-20"
+            >
+              點擊前往0050與00631L定期定額試算工具
+              {/* 小三角形箭頭 */}
+              <div
+                className="absolute top-full left-1/2 -translate-x-1/2 
+                              border-8 border-transparent border-t-slate-800"
+              ></div>
+            </div>
+
+            {/* 按鈕本體 */}
+            <button
+              className="bg-red-600 text-white px-8 py-3 rounded-xl text-lg font-medium 
+                         hover:bg-red-700 transition-colors shadow-lg active:transform active:scale-95"
+              onClick={() =>
+                window.open(
+                  "https://your-github-username.github.io/other-repo/",
+                  "_blank"
+                )
+              }
+            >
+              了解更多
+            </button>
+          </div>
         </div>
       </div>
     </div>
