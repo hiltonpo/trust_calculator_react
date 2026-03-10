@@ -170,7 +170,7 @@ const TrustCalculator = () => {
                          hover:bg-red-700 transition-colors shadow-lg active:transform active:scale-95"
               onClick={() =>
                 window.open(
-                  "https://your-github-username.github.io/other-repo/",
+                  "https://hiltonpo.github.io/ETF_calculator/",
                   "_blank"
                 )
               }
